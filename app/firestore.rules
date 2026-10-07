@@ -128,31 +128,29 @@ service cloud.firestore {
     }
 
     // ---- Confidential complaints (गोपनीय शिकायत) ----------------------------------
-    // The complaint document holds NO reporter identity. Who wrote it lives in confidentialOwners/{id},
-    // which only that reporter can read, so the Principal sees the complaint but never the name.
-    // Students and faculty can file; only the Principal can handle it. Nobody else can read it.
+    // Visible ONLY to the Principal and to the person who filed it. The reporter's identity (name, reg. no.,
+    // branch / designation) is stored in `reporter` so the Principal can identify and resolve the case.
+    // It is checked against the reporter's real profile, so nobody can file under someone else's name.
+    // Never shown in निवारण, Dashboard stats for others, or to any other faculty.
     match /confidential/{id} {
-      function ownsConf() { return signedIn() && exists(/databases/$(database)/documents/confidentialOwners/$(id))
-        && get(/databases/$(database)/documents/confidentialOwners/$(id)).data.ownerId == request.auth.uid; }
-      allow list: if isPrincipal();
-      allow get: if isPrincipal() || ownsConf();
+      function validReporter(r) {
+        return r.keys().hasOnly(['name','role','regNo','branch','semester','designations','branches'])
+          && r.name == me().name && r.role == me().role;
+      }
+      allow list: if isPrincipal() || (signedIn() && resource.data.ownerId == request.auth.uid);
+      allow get: if isPrincipal() || isOwner(resource.data.ownerId);
       allow create: if (isActiveStudent() || isActiveFaculty())
-        && request.resource.data.keys().hasOnly(['title','description','category','status','history','createdAt','updatedAt'])
+        && request.resource.data.keys().hasOnly(['ownerId','reporter','title','description','category','status','history','createdAt','updatedAt'])
+        && request.resource.data.ownerId == request.auth.uid
+        && validReporter(request.resource.data.reporter)
         && request.resource.data.status == 'pending'
         && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 150
-        && request.resource.data.description is string && request.resource.data.description.size() > 0 && request.resource.data.description.size() <= 3000
-        && getAfter(/databases/$(database)/documents/confidentialOwners/$(id)).data.ownerId == request.auth.uid;
+        && request.resource.data.description is string && request.resource.data.description.size() > 0 && request.resource.data.description.size() <= 3000;
       // Principal changes status / replies. The reporter may only add a follow-up message (status stays the same).
       allow update: if (isPrincipal() && affects(['status','history','updatedAt']))
-        || (ownsConf() && affects(['history','updatedAt']) && request.resource.data.status == resource.data.status
+        || (isOwner(resource.data.ownerId) && affects(['history','updatedAt']) && request.resource.data.status == resource.data.status
             && request.resource.data.history.size() >= resource.data.history.size());
       allow delete: if isPrincipal();
-    }
-    match /confidentialOwners/{id} {
-      allow create: if (isActiveStudent() || isActiveFaculty())
-        && request.resource.data.keys().hasOnly(['ownerId','createdAt']) && request.resource.data.ownerId == request.auth.uid;
-      allow get, list: if signedIn() && resource.data.ownerId == request.auth.uid;
-      allow update, delete: if false;
     }
 
     // ---- QueueLess slots -----------------------------------------------------

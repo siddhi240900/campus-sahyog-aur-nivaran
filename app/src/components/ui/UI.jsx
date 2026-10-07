@@ -67,11 +67,11 @@ export function Modal({ title, onClose, children, wide }) {
 }
 
 // The signature element: Pending → Assigned → In progress → Resolved
-export function StatusTrail({ status, compact }) {
-  const idx = Math.max(0, COMPLAINT_STATUSES.findIndex(s => s.id === status));
+export function StatusTrail({ status, compact, steps = COMPLAINT_STATUSES }) {
+  const idx = Math.max(0, steps.findIndex(s => s.id === status));
   return (
-    <ol className={`trail ${compact ? 'compact' : ''}`} aria-label={`Status: ${COMPLAINT_STATUSES[idx]?.label}`}>
-      {COMPLAINT_STATUSES.map((s, i) => (
+    <ol className={`trail ${compact ? 'compact' : ''}`} aria-label={`Status: ${steps[idx]?.label}`}>
+      {steps.map((s, i) => (
         <li key={s.id} className={`${i < idx ? 'done' : ''} ${i === idx ? 'now' : ''}`} data-s={s.id}>
           <span className="dot">{i < idx ? <Icon name="check" size={12} /> : null}</span>
           <span className="t-label">{s.label}</span>

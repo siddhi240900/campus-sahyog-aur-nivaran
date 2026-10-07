@@ -59,17 +59,21 @@ export const saveRoutineImage = (branch, sem, data, by) => setDoc(routineImageRe
 export const deleteRoutineImage = (branch, sem) => deleteDoc(routineImageRef(branch, sem));
 
 // ---- confidential complaints ----
-// The complaint holds no identity. A separate owner record (readable only by the reporter) links it back to them.
+// Stored with the reporter's identity so the Principal (and only the Principal) can identify and resolve the case.
 export const confidentialQ = () => query(collection(db, 'confidential'), orderBy('createdAt', 'desc'), limit(200));
-export const myConfidentialQ = uid => query(collection(db, 'confidentialOwners'), where('ownerId', '==', uid));
+export const myConfidentialQ = uid => query(collection(db, 'confidential'), where('ownerId', '==', uid));
 export const confidentialRef = id => doc(db, 'confidential', id);
-export async function submitConfidential({ title, description, category }, user) {
-  const ref = doc(collection(db, 'confidential'));
-  const batch = writeBatch(db);
-  batch.set(ref, { title, description, category, status: 'pending', history: [{ status: 'pending', by: 'Anonymous reporter', at: Date.now(), note: 'Complaint received' }], createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  batch.set(doc(db, 'confidentialOwners', ref.id), { ownerId: user.uid, createdAt: serverTimestamp() });
-  await batch.commit();
-  return ref.id;
-}
+
+// Only fields that identify the person; empty values are dropped (Firestore rejects undefined).
+export const reporterSnapshot = profile => Object.fromEntries(Object.entries({
+  name: profile.name, role: profile.role, regNo: profile.regNo, branch: profile.branch, semester: profile.semester,
+  designations: profile.designations, branches: profile.branches,
+}).filter(([, value]) => value !== undefined && value !== null && value !== ''));
+
+export const submitConfidential = ({ title, description, category }, profile, user) => addDoc(collection(db, 'confidential'), {
+  ownerId: user.uid, reporter: reporterSnapshot(profile), title, description, category, status: 'pending',
+  history: [{ status: 'pending', by: 'Reporter', at: Date.now(), note: 'Complaint received' }],
+  createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+});
 export const updateConfidential = (id, patch, entry) => updateDoc(confidentialRef(id), { ...patch, history: arrayUnion({ ...entry, at: Date.now() }), updatedAt: serverTimestamp() });
 export const deleteConfidential = id => deleteDoc(confidentialRef(id));

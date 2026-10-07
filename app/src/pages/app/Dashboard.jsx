@@ -5,7 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useLive } from '../../hooks/useLive';
 import { noticesQ, complaintsQ, resourcesQ, noticeForStudent, routineRef, confidentialQ } from '../../services/data';
 import { repeatedIssues } from '../../lib/similarity';
-import { timeAgo, todayISO, fmtISODate, to12h, fmtDate } from '../../lib/format';
+import { describeReporter } from '../../lib/reporter';
+import { timeAgo, todayISO, fmtISODate, to12h } from '../../lib/format';
 import { branchLabel } from '../../config/branches';
 import { CATEGORIES, categoryLabel, DAYS, serviceLabel, typeLabel } from '../../config/constants';
 import Icon from '../../components/ui/Icon';
@@ -48,7 +49,7 @@ export default function Dashboard() {
   const mySlots = useLive(() => (p.role === 'student' ? query(collection(db, 'slots'), where('studentId', '==', user.uid)) : null), [p.role]).data;
   const pendingFaculty = useLive(() => (p.role === 'principal' ? query(collection(db, 'users'), where('role', '==', 'faculty'), where('status', '==', 'pending')) : null), [p.role]).data;
   const pendingStudents = useLive(() => (p.role === 'faculty' && p.branches?.length ? query(collection(db, 'users'), where('role', '==', 'student'), where('branch', '==', p.branches[0]), where('status', '==', 'pending')) : null), [p.role]).data;
-  const confidential = useLive(() => (p.role === 'principal' ? confidentialQ() : null), [p.role]).data;
+  const openConfidential = useLive(() => (p.role === 'principal' ? confidentialQ() : null), [p.role]).data.filter(c => c.status !== 'resolved');
   const today = useTodayRoutine(p);
 
   const open = complaints.filter(c => c.status !== 'resolved');
@@ -96,7 +97,7 @@ export default function Dashboard() {
     </div>
     <div className="grid-2">
       {p.role === 'principal' && <Section title="Confidential complaints" link={['/app/confidential', 'Open']}>
-        {confidential.filter(c => c.status !== 'resolved').length ? <ul className="list">{confidential.filter(c => c.status !== 'resolved').slice(0, 4).map(c => <li key={c.id}><Icon name="lock" size={16} /><div><b>{c.title}</b><small>{timeAgo(c.createdAt)} · Identity hidden</small></div><Badge tone={c.status === 'pending' ? 'pending' : 'progress'}>{c.status === 'pending' ? 'New' : 'In review'}</Badge></li>)}</ul> : <Empty icon="lock" title="Nothing confidential open">Private complaints are visible only to you.</Empty>}
+        {openConfidential.length ? <ul className="list">{openConfidential.slice(0, 4).map(c => <li key={c.id}><Icon name="lock" size={16} /><div><b>{c.title}</b><small>{describeReporter(c.reporter)} · {timeAgo(c.createdAt)}</small></div><Badge tone={c.status === 'pending' ? 'pending' : 'progress'}>{c.status === 'pending' ? 'New' : 'In review'}</Badge></li>)}</ul> : <Empty icon="lock" title="Nothing confidential open">Private complaints are visible only to you.</Empty>}
       </Section>}
       {p.role === 'principal' && <Section title="Waiting for your approval" link={['/app/approvals', 'Review']}>
         {pendingFaculty.length ? <ul className="list">{pendingFaculty.slice(0, 4).map(f => <li key={f.uid}><Icon name="shield" size={16} /><div><b>{f.name}</b><small>{f.email}</small></div></li>)}</ul> : <Empty icon="shield" title="No faculty requests">New faculty and admin requests appear here.</Empty>}
