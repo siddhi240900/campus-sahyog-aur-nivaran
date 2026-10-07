@@ -65,7 +65,7 @@ Copy `.env.example` to `.env` and fill in the Firebase keys. `VITE_PRINCIPAL_UID
 - Never commit `.env`. No AI key belongs in the browser; use your own endpoint via `VITE_AI_ENDPOINT` (`src/lib/ai.js`).
 
 ## Conventions
-- Dashboard greeting follows the device clock (morning / afternoon / evening / night) and updates by itself; it shows the user's full name.
+- Dashboard greeting follows the device clock (morning / afternoon / evening) and updates by itself; it shows the user's full name.
 - Show a person's name through `displayName()` in `src/lib/people.js`, so the Principal always appears with the "Principal" salutation.
 - Components `PascalCase.jsx`, helpers/hooks `camelCase.js`; one page per feature in `pages/app/`.
 - Colours only through `src/config/theme.js` / CSS variables in `styles.css`.
