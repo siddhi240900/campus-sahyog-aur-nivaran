@@ -8,20 +8,21 @@ import { repeatedIssues } from '../../lib/similarity';
 import { describeReporter } from '../../lib/reporter';
 import { timeAgo, todayISO, fmtISODate, to12h } from '../../lib/format';
 import { branchLabel } from '../../config/branches';
+import { useGreeting } from '../../hooks/useGreeting';
+import { displayName } from '../../lib/people';
 import { CATEGORIES, categoryLabel, DAYS, serviceLabel, typeLabel } from '../../config/constants';
 import Icon from '../../components/ui/Icon';
 import { PageHeader, StatusTrail, StatusBadge, Empty, Badge } from '../../components/ui/UI';
 import { onSnapshot } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 
-const greet = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; };
 
 function Stat({ label, value, tone, sub, to }) {
   const body = <><span className="stat-label">{label}</span><b className="stat-value">{value}</b>{sub && <small>{sub}</small>}</>;
   return to ? <Link to={to} className={`stat ${tone || ''}`}>{body}</Link> : <div className={`stat ${tone || ''}`}>{body}</div>;
 }
 function NoticeRow({ n }) {
-  return <li><Icon name={n.pinned ? 'pin' : 'bell'} size={16} /><div><b>{n.title}</b><small>{n.authorName} · {timeAgo(n.createdAt)}{n.target !== 'all' ? ` · ${branchLabel(n.branch)}${n.target === 'semester' ? ` Sem ${n.semester}` : ''}` : ''}</small></div></li>;
+  return <li><Icon name={n.pinned ? 'pin' : 'bell'} size={16} /><div><b>{n.title}</b><small>{displayName({ name: n.authorName, role: n.authorRole })} · {timeAgo(n.createdAt)}{n.target !== 'all' ? ` · ${branchLabel(n.branch)}${n.target === 'semester' ? ` Sem ${n.semester}` : ''}` : ''}</small></div></li>;
 }
 function Section({ title, link, children }) {
   return <section className="card"><div className="card-head"><h2>{title}</h2>{link && <Link to={link[0]}>{link[1]}</Link>}</div>{children}</section>;
@@ -43,6 +44,7 @@ function useTodayRoutine(p) {
 
 export default function Dashboard() {
   const { profile: p, user } = useAuth();
+  const greeting = useGreeting();
   const notices = useLive(noticesQ, []).data;
   const complaints = useLive(complaintsQ, []).data;
   const resources = useLive(resourcesQ, []).data;
@@ -62,7 +64,7 @@ export default function Dashboard() {
     const rel = notices.filter(n => noticeForStudent(n, p)).slice(0, 4);
     const nextSlot = mySlots.filter(s => s.status === 'scheduled' && s.date >= todayISO()).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
     return (<>
-      <PageHeader title={`${greet()}, ${p.name.split(' ')[0]}`} subtitle={`${branchLabel(p.branch)}, Semester ${p.semester}`} />
+      <PageHeader title={`${greeting}, ${p.name}`} subtitle={`${branchLabel(p.branch)}, Semester ${p.semester}`} />
       <div className="grid-2">
         <Section title="Notices for you" link={['/app/notices', 'All notices']}>
           {rel.length ? <ul className="list">{rel.map(n => <NoticeRow key={n.id} n={n} />)}</ul> : <Empty icon="bell" title="No notices yet">New notices for your branch and semester appear here.</Empty>}
@@ -88,7 +90,7 @@ export default function Dashboard() {
   const mineAssigned = complaints.filter(c => c.assignedTo === user.uid && c.status !== 'resolved');
 
   return (<>
-    <PageHeader title={p.role === 'principal' ? 'Campus overview' : `${greet()}, ${p.name.split(' ')[0]}`} subtitle={p.role === 'principal' ? 'Live status of complaints, rooms, notices and services.' : 'What needs attention on campus today.'} />
+    <PageHeader title={p.role === 'principal' ? 'Campus overview' : `${greeting}, ${p.name}`} subtitle={p.role === 'principal' ? 'Live status of complaints, rooms, notices and services.' : 'What needs attention on campus today.'} />
     <div className="stats">
       <Stat label="Total complaints" value={counts.total} to="/app/complaints" />
       <Stat label="Pending" value={counts.pending} tone="pending" to="/app/complaints" />

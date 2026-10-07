@@ -19,3 +19,11 @@ export const toMinutes = hhmm => { const [h, m] = (hhmm || '0:0').split(':').map
 export const addMinutes = (hhmm, mins) => { const [h, m] = hhmm.split(':').map(Number); const t = h * 60 + m + mins; return `${pad(Math.floor(t / 60) % 24)}:${pad(t % 60)}`; };
 // Registration numbers become Firestore document ids, so "/" and spaces are not allowed.
 export const normalizeRegNo = v => v.trim().toUpperCase().replace(/[\s/\\]+/g, '-').replace(/[^A-Z0-9-]/g, '');
+
+// "Good morning" (5:00-11:59), "Good afternoon" (12:00-16:59), "Good evening" (17:00-20:59), otherwise "Good night".
+export function greetingForHour(hour) {
+  if (hour >= 5 && hour < 12) return 'Good morning';
+  if (hour >= 12 && hour < 17) return 'Good afternoon';
+  if (hour >= 17 && hour < 21) return 'Good evening';
+  return 'Good night';
+}
