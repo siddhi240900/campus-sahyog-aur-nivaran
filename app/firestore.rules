@@ -173,6 +173,11 @@ service cloud.firestore {
     match /papers/{id} {
       allow read: if isActive();
       allow write: if isStaff();
+      // attached question-paper files (PDF / photos), stored in pieces
+      match /files/{part} {
+        allow read: if isActive();
+        allow write: if isStaff();
+      }
     }
   }
 }

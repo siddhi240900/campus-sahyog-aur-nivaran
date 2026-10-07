@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, doc, addDoc, setDoc, updateDoc, deleteDoc, writeBatch, query, where, orderBy, limit, serverTimestamp, arrayUnion } from 'firebase/firestore';
+import { collection, doc, addDoc, setDoc, getDoc, updateDoc, deleteDoc, writeBatch, query, where, orderBy, limit, serverTimestamp, arrayUnion } from 'firebase/firestore';
 
 // ---- query builders (used with useLive) ----
 export const noticesQ = () => query(collection(db, 'notices'), orderBy('createdAt', 'desc'), limit(100));
@@ -50,8 +50,32 @@ export const sendMessage = (channel, text, p, uid) => addDoc(collection(db, 'cha
 export const deleteMessage = (channel, id) => deleteDoc(doc(db, 'chats', channel, 'messages', id));
 
 // ---- PaperPulse ----
-export const savePaper = (data, by) => addDoc(collection(db, 'papers'), { ...data, uploadedBy: by.name, uploadedByUid: by.uid, createdAt: serverTimestamp() });
-export const deletePaper = id => deleteDoc(doc(db, 'papers', id));
+// A paper can carry attached files (PDF / photos). Firestore documents are limited to 1 MB, so each file is cut into
+// pieces stored in papers/{id}/files/{fileIndex}_{part}. The paper document is written LAST, so nobody ever sees a paper
+// whose files are still being saved.
+const FILE_CHUNK = 800000;
+export const savePaper = async (data, by, files = []) => {
+  const ref = doc(collection(db, 'papers')); const meta = []; const written = [];
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const { name, type, data: url } = files[i]; const parts = Math.ceil(url.length / FILE_CHUNK);
+      for (let p = 0; p < parts; p++) { const piece = doc(db, 'papers', ref.id, 'files', `${i}_${p}`); await setDoc(piece, { data: url.slice(p * FILE_CHUNK, (p + 1) * FILE_CHUNK) }); written.push(piece); }
+      meta.push({ name, type, parts });
+    }
+    await setDoc(ref, { ...data, ...(meta.length ? { files: meta } : {}), uploadedBy: by.name, uploadedByUid: by.uid, createdAt: serverTimestamp() });
+  } catch (err) { await Promise.allSettled(written.map(d => deleteDoc(d))); throw err; }
+  return ref.id;
+};
+// Returns the file as a data: URL, joined back from its pieces.
+export const loadPaperFile = async (paperId, file, index) => {
+  const pieces = await Promise.all(Array.from({ length: file.parts }, (_, p) => getDoc(doc(db, 'papers', paperId, 'files', `${index}_${p}`))));
+  if (pieces.some(d => !d.exists())) throw new Error('This file is incomplete.');
+  return pieces.map(d => d.data().data).join('');
+};
+export const deletePaper = async (id, files = []) => {
+  await deleteDoc(doc(db, 'papers', id));
+  await Promise.allSettled(files.flatMap((f, i) => Array.from({ length: f.parts }, (_, p) => deleteDoc(doc(db, 'papers', id, 'files', `${i}_${p}`)))));
+};
 
 // ---- routine image (one photo per branch + semester) ----
 export const routineImageRef = (branch, sem) => doc(db, 'routineImages', `${branch}_${sem}`);
