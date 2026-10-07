@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLive } from '../../hooks/useLive';
 import { noticesQ, saveNotice, deleteNotice, noticeForStudent } from '../../services/data';
 import { branches, semesters, branchLabel } from '../../config/branches';
+import { displayName } from '../../lib/people';
 import { fmtDateTime } from '../../lib/format';
 import Icon from '../../components/ui/Icon';
 import { Button, Input, Select, Textarea, Modal, PageHeader, Empty, Loading, ErrorNote, Badge, useToast, Tabs } from '../../components/ui/UI';
@@ -51,7 +52,7 @@ export default function Notices() {
               {staff && canEdit(n) && <div className="row-actions"><button className="icon-btn" onClick={() => open(n)} aria-label="Edit"><Icon name="edit" size={17} /></button><button className="icon-btn" onClick={() => remove(n)} aria-label="Delete"><Icon name="trash" size={17} /></button></div>}
             </div>
             <h2>{n.title}</h2><p className="body">{n.body}</p>
-            <small className="meta">{n.authorName}{n.authorRole === 'principal' ? ' (Principal)' : ''} · {fmtDateTime(n.createdAt)}</small>
+            <small className="meta">{displayName({ name: n.authorName, role: n.authorRole })} · {fmtDateTime(n.createdAt)}</small>
           </article>
         ))}
       </div>)}

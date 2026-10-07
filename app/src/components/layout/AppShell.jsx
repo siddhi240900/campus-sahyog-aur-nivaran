@@ -4,6 +4,7 @@ import Icon from '../ui/Icon';
 import { useAuth } from '../../context/AuthContext';
 import { signOut } from '../../services/auth';
 import { branchLabel } from '../../config/branches';
+import { displayName } from '../../lib/people';
 import RulesNotice, { rulesPending, clearRulesPending } from './RulesNotice';
 
 const NAV = [
@@ -47,7 +48,7 @@ export function AppShell() {
         </nav>
         <div className="side-user">
           <div className="avatar">{profile.name?.[0]?.toUpperCase()}</div>
-          <div className="who"><b>{profile.name}</b><small>{roleName[profile.role]}{profile.role === 'student' ? ` · ${branchLabel(profile.branch)} Sem ${profile.semester}` : ''}</small></div>
+          <div className="who"><b>{displayName(profile)}</b><small>{roleName[profile.role]}{profile.role === 'student' ? ` · ${branchLabel(profile.branch)} Sem ${profile.semester}` : ''}</small></div>
           <button className="icon-btn" onClick={() => signOut()} aria-label="Log out" title="Log out"><Icon name="logout" size={18} /></button>
         </div>
       </aside>

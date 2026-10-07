@@ -4,6 +4,7 @@ import { useLive } from '../../hooks/useLive';
 import { resourcesQ, complaintsQ, createResource, updateResource, deleteResource } from '../../services/data';
 import { RESOURCE_TYPES, typeLabel } from '../../config/constants';
 import { fmtTime, pad } from '../../lib/format';
+import { displayName } from '../../lib/people';
 import Icon from '../../components/ui/Icon';
 import { Button, Input, Select, Modal, PageHeader, Empty, Loading, ErrorNote, Badge, Tabs, useToast } from '../../components/ui/UI';
 import { Link } from 'react-router-dom';
@@ -26,7 +27,7 @@ export default function Resources() {
   const items = data.filter(r => type === 'all' || r.type === type).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   const issues = id => complaints.filter(c => c.resourceId === id && c.status !== 'resolved').length;
   const isFree = r => r.status === 'available' || (r.releaseAt && r.releaseAt < Date.now());
-  const openUpdate = r => { setUpd(r); setF({ status: isFree(r) ? 'occupied' : 'available', facultyName: p.name, purpose: '', release: '' }); };
+  const openUpdate = r => { setUpd(r); setF({ status: isFree(r) ? 'occupied' : 'available', facultyName: displayName(p), purpose: '', release: '' }); };
 
   const saveStatus = async e => {
     e.preventDefault(); setBusy(true);

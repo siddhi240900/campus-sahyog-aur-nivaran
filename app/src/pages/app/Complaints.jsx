@@ -8,6 +8,7 @@ import { classifyComplaint } from '../../lib/classifier';
 import { aiClassify } from '../../lib/ai';
 import { findSimilar, repeatedIssues } from '../../lib/similarity';
 import { compressImage } from '../../lib/image';
+import { displayName } from '../../lib/people';
 import { CATEGORIES, categoryLabel, COMPLAINT_STATUSES, statusLabel } from '../../config/constants';
 import { fmtDateTime, timeAgo } from '../../lib/format';
 import { getProfile } from '../../services/users';
@@ -49,7 +50,7 @@ function Detail({ c, staff, faculty, onClose }) {
   const [note, setNote] = useState(''); const [assignee, setAssignee] = useState(c.assignedTo || ''); const [busy, setBusy] = useState(false);
   const move = async (status, extra = {}) => {
     setBusy(true);
-    try { await updateComplaint(c.id, { status, ...extra }, { status, by: p.name, note: note.trim() }); toast(`Marked ${statusLabel(status).toLowerCase()}`); setNote(''); }
+    try { await updateComplaint(c.id, { status, ...extra }, { status, by: displayName(p), note: note.trim() }); toast(`Marked ${statusLabel(status).toLowerCase()}`); setNote(''); }
     catch (e) { toast(e.code === 'permission-denied' ? 'You cannot update complaints.' : e.message, 'err'); } finally { setBusy(false); }
   };
   const assign = () => {

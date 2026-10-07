@@ -5,6 +5,7 @@ import { papersQ, savePaper, deletePaper, loadPaperFile } from '../../services/d
 import { analysePapers, splitQuestions } from '../../lib/paperpulse';
 import { readPaperFile, dataUrlToBlob, renderPdfPages, MAX_FILES, MAX_TOTAL_CHARS } from '../../lib/paperFile';
 import { branches, semesters } from '../../config/branches';
+import { displayName } from '../../lib/people';
 import Icon from '../../components/ui/Icon';
 import { Button, Input, Select, Textarea, Modal, PageHeader, Empty, Loading, ErrorNote, Badge, Tabs, useToast } from '../../components/ui/UI';
 
@@ -54,7 +55,7 @@ function Upload({ onClose, defaults, papers }) {
     e.preventDefault();
     const pending = topic.trim() ? [...items, ...topic.split(/[,;\n]+/).map(x => x.trim()).filter(x => x.length > 2)] : items;   // topic typed but "Add" not pressed
     if (!pending.length && !files.length) return toast('Attach the paper (PDF / photo) or add at least one topic.', 'err'); setBusy(true);
-    try { await savePaper({ branch: f.branch, semester: Number(f.semester), subject: f.subject.trim(), year: Number(f.year), questions: [...new Set(pending)] }, { uid: user.uid, name: p.name }, files); toast('Paper saved'); onClose(); }
+    try { await savePaper({ branch: f.branch, semester: Number(f.semester), subject: f.subject.trim(), year: Number(f.year), questions: [...new Set(pending)] }, { uid: user.uid, name: displayName(p) }, files); toast('Paper saved'); onClose(); }
     catch (err) { toast(err.message, 'err'); setBusy(false); }
   };
   return (

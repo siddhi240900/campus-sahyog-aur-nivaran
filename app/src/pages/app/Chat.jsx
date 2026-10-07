@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLive } from '../../hooks/useLive';
 import { messagesQ, sendMessage, deleteMessage } from '../../services/data';
 import { branches, semesters, branchLabel, channelId } from '../../config/branches';
+import { displayName } from '../../lib/people';
 import { fmtTime, fmtDate, tsMs } from '../../lib/format';
 import Icon from '../../components/ui/Icon';
 import { PageHeader, Loading, ErrorNote, Empty, useToast } from '../../components/ui/UI';
@@ -53,7 +54,7 @@ export default function Chat() {
               {sep && <div className="day-sep"><span>{d}</span></div>}
               <div className={`msg ${mine ? 'mine' : ''}`}>
                 <div className="bubble">
-                  {!mine && <b className="who">{m.name}{m.role !== 'student' && <i>{m.role === 'principal' ? 'Principal' : 'Faculty'}</i>}</b>}
+                  {!mine && <b className="who">{displayName(m)}{m.role === 'faculty' && <i>Faculty</i>}</b>}
                   <p>{m.text}</p>
                   <small>{tsMs(m.createdAt) ? fmtTime(m.createdAt) : 'sending…'}</small>
                   {staff && <button className="msg-del" onClick={() => deleteMessage(channel, m.id)} aria-label="Delete message"><Icon name="trash" size={14} /></button>}

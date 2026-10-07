@@ -7,6 +7,7 @@ import { branches, semesters } from '../../config/branches';
 import { DAYS } from '../../config/constants';
 import { to12h, fmtDate } from '../../lib/format';
 import { compressRoutineImage } from '../../lib/image';
+import { displayName } from '../../lib/people';
 import Icon from '../../components/ui/Icon';
 import { Button, Input, Select, Modal, PageHeader, Empty, Loading, Tabs, ErrorNote, useToast } from '../../components/ui/UI';
 
@@ -25,7 +26,7 @@ function RoutineImage({ branch, sem, staff, img, loading }) {
     setErr(''); setBusy(true);
     try {
       const data = await compressRoutineImage(file);
-      await saveRoutineImage(branch, sem, data, { name: p.name, uid: user.uid });
+      await saveRoutineImage(branch, sem, data, { name: displayName(p), uid: user.uid });
       toast(img ? 'Routine image replaced' : 'Routine image uploaded');
     } catch (x) { setErr(x.code === 'permission-denied' ? 'You cannot upload routines. Publish the latest firestore.rules.' : x.message); }
     finally { setBusy(false); }
@@ -78,7 +79,7 @@ export default function Routine() {
   const entries = doc?.entries || [];
   const dayList = entries.map((e, i) => ({ ...e, i })).filter(e => e.day === day).sort((a, b) => a.start.localeCompare(b.start));
   const persist = async next => {
-    try { await saveRoutine(branch, sem, next, { name: p.name, uid: user.uid }); toast('Routine saved'); }
+    try { await saveRoutine(branch, sem, next, { name: displayName(p), uid: user.uid }); toast('Routine saved'); }
     catch (e) { toast(e.code === 'permission-denied' ? 'You cannot edit routines.' : e.message, 'err'); }
   };
   const submit = async e => {

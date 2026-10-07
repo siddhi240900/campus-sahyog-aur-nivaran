@@ -6,6 +6,7 @@ import { useLive } from '../../hooks/useLive';
 import { createSlots, setSlotStatus, deleteSlot } from '../../services/data';
 import { SERVICES, serviceLabel } from '../../config/constants';
 import { branches, semesters, branchLabel } from '../../config/branches';
+import { displayName } from '../../lib/people';
 import { todayISO, fmtISODate, to12h, addMinutes, toMinutes } from '../../lib/format';
 import Icon from '../../components/ui/Icon';
 import { Button, Input, Select, Textarea, Modal, PageHeader, Empty, Loading, ErrorNote, Badge, Tabs, useToast } from '../../components/ui/UI';
@@ -56,7 +57,7 @@ function Assign({ onClose }) {
     setBusy(true);
     try {
       const docs = f.docs.split(',').map(x => x.trim()).filter(Boolean);
-      await createSlots(chosen.map((s, i) => ({ studentId: s.uid, studentName: s.name, regNo: s.regNo, branch: s.branch, semester: s.semester, service: f.service, date: f.date, time: addMinutes(f.from, i * gap), endTime: addMinutes(f.from, (i + 1) * gap), location: f.location.trim(), documents: docs, note: f.note.trim() })), { uid: user.uid, name: p.name });
+      await createSlots(chosen.map((s, i) => ({ studentId: s.uid, studentName: s.name, regNo: s.regNo, branch: s.branch, semester: s.semester, service: f.service, date: f.date, time: addMinutes(f.from, i * gap), endTime: addMinutes(f.from, (i + 1) * gap), location: f.location.trim(), documents: docs, note: f.note.trim() })), { uid: user.uid, name: displayName(p) });
       toast(`${chosen.length} slot${chosen.length > 1 ? 's' : ''} assigned`); onClose();
     } catch (err) { toast(err.message, 'err'); setBusy(false); }
   };
