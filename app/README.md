@@ -14,7 +14,7 @@ React 19 + Vite + Firebase (Auth, Firestore). Three roles: **Student**, **Facult
 | निवारण (Complaints) | Report problems with a photo; Pending → Assigned → In progress → Resolved; repeated-issue detection |
 | गोपनीय शिकायत (Confidential) | Private complaints visible **only to the Principal** (and the reporter). The Principal sees who filed it (name, reg. no. / designation, branch) so the case can be resolved. Never shown in निवारण |
 | QueueLess | Office service time slots for students |
-| PaperPulse | Previous-year papers (upload a question-paper **PDF**, a .txt file, paste text, or type topics) and repeated-concept analysis |
+| PaperPulse | Previous-year papers (upload a question-paper **PDF** (text or scanned, OCR in the browser), a .txt file, paste text, or type topics) and repeated-concept analysis |
 | People & approvals | Students approved by branch faculty, faculty approved by the Principal |
 | Student rules notice | Shown once after every student login |
 

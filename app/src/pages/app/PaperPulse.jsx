@@ -15,7 +15,7 @@ function Upload({ onClose, defaults, papers }) {
   const [f, setF] = useState({ branch: defaults.branch, semester: defaults.semester, subject: '', year: thisYear - 1 });
   const [mode, setMode] = useState('quick');          // quick = type short topics, paste = paste the whole paper text
   const [items, setItems] = useState([]);             // the questions / topics that will be saved
-  const [topic, setTopic] = useState(''); const [text, setText] = useState(''); const [busy, setBusy] = useState(false); const [reading, setReading] = useState(false);
+  const [topic, setTopic] = useState(''); const [text, setText] = useState(''); const [busy, setBusy] = useState(false); const [reading, setReading] = useState(''); // '' = idle, otherwise the progress message
 
   // Earlier papers of the same branch + semester: reuse their subjects and topics instead of retyping.
   const same = papers.filter(x => x.branch === f.branch && x.semester === Number(f.semester));
@@ -38,12 +38,15 @@ function Upload({ onClose, defaults, papers }) {
   // A PDF is read in the browser and its questions are added straight to the list; a .txt file is loaded into the box.
   const loadFile = async e => {
     const file = e.target.files[0]; e.target.value = ''; if (!file) return;
-    setReading(true);
+    setReading('Reading the file…');
     try {
-      if (isPdfFile(file)) addQuestionsFrom(await extractPdfText(file), 'PDF');
-      else setText(await file.text());
+      if (isPdfFile(file)) {
+        const pdfText = await extractPdfText(file, setReading);
+        if (pdfText.trim()) addQuestionsFrom(pdfText, 'PDF');
+        else toast('PDF opened, but no questions could be read from it. Add its topics under Quick topics.');
+      } else setText(await file.text());
     } catch (err) { toast(err.message || 'Could not read that file. Copy the text and paste it instead.', 'err'); }
-    finally { setReading(false); }
+    finally { setReading(''); }
   };
 
   const submit = async e => {
@@ -70,8 +73,8 @@ function Upload({ onClose, defaults, papers }) {
           </div>
           {suggestions.length > 0 && <div><small className="muted">Asked in earlier years. Tap to add:</small><div className="chips">{suggestions.map(sg => <button type="button" key={sg} className="chip" onClick={() => add([sg])}>+ {sg}</button>)}</div></div>}
         </> : <>
-          <label className={`btn primary ${reading ? 'is-busy' : ''}`}><Icon name="upload" size={16} />{reading ? 'Reading the file…' : 'Upload question paper PDF'}<input type="file" accept=".pdf,application/pdf,.txt,.md,.csv,text/plain" onChange={loadFile} disabled={reading} hidden /></label>
-          <small className="muted">The PDF is read on your device and its questions are listed below for you to check. Scanned photos cannot be read; use Quick topics for those.</small>
+          <label className={`btn primary ${reading ? 'is-busy' : ''}`}><Icon name="upload" size={16} />{reading || 'Upload question paper PDF'}<input type="file" accept=".pdf,application/pdf,.txt,.md,.csv,text/plain" onChange={loadFile} disabled={reading} hidden /></label>
+          <small className="muted">The PDF is read on your device and its questions are listed below for you to check. Scanned papers are read with OCR, which takes a little longer; check the questions it finds.</small>
           <Textarea label="Or paste the paper text" rows={7} value={text} onChange={e => setText(e.target.value)} placeholder={'Copy the whole question paper from the PDF or Word file and paste it here.\nQ1. Explain the types of linked list.\nQ2. Define stack and write its applications.'} hint="Question numbers, marks and broken lines are cleaned up automatically." />
           <div className="row-btns"><Button type="button" variant="outline" onClick={findQuestions} disabled={!text.trim()}>Find questions</Button></div>
         </>}
