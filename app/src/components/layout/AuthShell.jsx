@@ -3,7 +3,7 @@ export function AuthShell({ title, subtitle, children, wide }) {
   return (
     <main className="auth-page">
       <aside className="auth-side">
-        <Link to="/"><img src="/assets/campus-logo.png" alt="CAMPUS सहयोग और निवारण" /></Link>
+        <Link to="/" className="auth-badge"><img src="/assets/campus-logo.png" alt="CAMPUS सहयोग और निवारण" /></Link>
         <p className="auth-tag">One digital platform for a connected and smarter college.</p>
         <div className="auth-college"><img src="/assets/college-logo.jpeg" alt="" /><span>Government Women’s Polytechnic, Patna</span></div>
       </aside>
