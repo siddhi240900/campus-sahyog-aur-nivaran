@@ -28,8 +28,8 @@ app/
 │  ├─ context/              AuthContext (session, profile, role)
 │  ├─ routes/guards.jsx     Route guards (login, approval, role)
 │  ├─ services/             All Firestore / Auth calls (data.js, users.js, auth.js)
-│  ├─ hooks/                useLive (live queries), useReveal
-│  ├─ lib/                  Pure helpers: format, image compression, paperFile (PDF/photo attachments), similarity, classifier, reporter
+│  ├─ hooks/                useLive (live queries), useReveal, useGreeting (time-of-day greeting)
+│  ├─ lib/                  Pure helpers: format, image compression, paperFile (PDF/photo attachments), people (name display), similarity, classifier, reporter
 │  ├─ components/           ui/ (Button, Modal, Tabs, StatusTrail…), layout/ (AppShell, AuthShell, RulesNotice)
 │  └─ pages/                auth/, app/ (one file per feature), landing/
 ```
@@ -65,6 +65,8 @@ Copy `.env.example` to `.env` and fill in the Firebase keys. `VITE_PRINCIPAL_UID
 - Never commit `.env`. No AI key belongs in the browser; use your own endpoint via `VITE_AI_ENDPOINT` (`src/lib/ai.js`).
 
 ## Conventions
+- Dashboard greeting follows the device clock (morning / afternoon / evening / night) and updates by itself; it shows the user's full name.
+- Show a person's name through `displayName()` in `src/lib/people.js`, so the Principal always appears with the "Principal" salutation.
 - Components `PascalCase.jsx`, helpers/hooks `camelCase.js`; one page per feature in `pages/app/`.
 - Colours only through `src/config/theme.js` / CSS variables in `styles.css`.
 - Commit messages follow `type(scope): summary` (`feat`, `fix`, `refactor`, `docs`, `chore`).
