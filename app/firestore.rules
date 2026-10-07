@@ -1,0 +1,180 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Identity helpers ----------------------------------------------------
+    // The Principal is identified only by UID (never by a profile field), so nobody can fake it.
+    function principalUid() { return '20WAn1MHd1bBw8ee7jyjCYWPmEh1'; }
+    function signedIn()     { return request.auth != null; }
+    function isPrincipal()  { return signedIn() && request.auth.uid == principalUid(); }
+    function isOwner(uid)   { return signedIn() && request.auth.uid == uid; }
+    function verified()     { return request.auth.token.email_verified == true; }
+    function me()           { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+
+    function isActiveFaculty() { return signedIn() && verified() && me().role == 'faculty' && me().status == 'active'; }
+    function isActiveStudent() { return signedIn() && verified() && me().role == 'student' && me().status == 'active'; }
+    function isStaff()  { return isPrincipal() || isActiveFaculty(); }
+    // Faculty with no branches assigned may review students of every branch.
+    function coversBranch(b) { return me().branches.size() == 0 || b in me().branches; }
+    function isActive() { return isStaff() || isActiveStudent(); }
+
+    function affects(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+
+    // ---- Registration validation ---------------------------------------------
+    function validStudent(d) {
+      return d.keys().hasOnly(['uid','name','regNo','branch','semester','email','role','status','createdAt'])
+        && d.uid == request.auth.uid && d.role == 'student' && d.status == 'pending'
+        && d.name is string && d.name.size() > 1 && d.name.size() <= 80
+        && d.regNo is string && d.regNo.size() >= 3 && d.regNo.size() <= 30
+        && d.branch is string && d.semester is number && d.semester >= 1 && d.semester <= 6;
+    }
+    function validFaculty(d) {
+      return d.keys().hasOnly(['uid','name','email','designations','branches','role','status','createdAt'])
+        && d.uid == request.auth.uid && d.role == 'faculty' && d.status == 'pending'
+        && d.name is string && d.name.size() > 1 && d.name.size() <= 80
+        && d.designations is list && d.designations.size() > 0 && d.branches is list;
+    }
+    function validPrincipal(d) {
+      return d.keys().hasOnly(['uid','name','email','role','status','createdAt'])
+        && d.uid == request.auth.uid && d.role == 'principal' && d.status == 'active';
+    }
+
+    // ---- Users ---------------------------------------------------------------
+    match /users/{uid} {
+      // Self-registration can only create PENDING student/faculty profiles.
+      // The Principal profile can only be created by the Principal UID itself.
+      allow create: if isOwner(uid) && (validStudent(request.resource.data) || validFaculty(request.resource.data)
+                       || (isPrincipal() && validPrincipal(request.resource.data)));
+
+      // Everyone can always read their own profile (any status).
+      // Active faculty: active students, students of their own branches (for approvals), and active faculty (for assigning).
+      allow get: if isOwner(uid) || isPrincipal()
+        || (isActiveFaculty() && ((resource.data.role == 'student' && (resource.data.status == 'active' || coversBranch(resource.data.branch)))
+                                  || (resource.data.role == 'faculty' && resource.data.status == 'active')));
+      allow list: if isPrincipal()
+        || (isActiveFaculty() && ((resource.data.role == 'student' && (resource.data.status == 'active' || coversBranch(resource.data.branch)))
+                                  || (resource.data.role == 'faculty' && resource.data.status == 'active')));
+
+      allow update: if isPrincipal()
+        // owner may change only name (students also semester); never role/status
+        || (isOwner(uid) && affects(['name', 'semester']) && request.resource.data.semester == resource.data.semester)
+        || (isOwner(uid) && resource.data.role == 'student' && affects(['name', 'semester']) && request.resource.data.semester is number && request.resource.data.semester >= 1 && request.resource.data.semester <= 6)
+        // faculty review only students of branches they cover
+        || (isActiveFaculty() && resource.data.role == 'student' && coversBranch(resource.data.branch)
+            && affects(['status','rejectionReason','reviewedBy','reviewedAt'])
+            && request.resource.data.reviewedBy == request.auth.uid
+            && request.resource.data.status in ['active','rejected']);
+      allow delete: if false;
+    }
+
+    // Reserves a registration number so two students cannot share it.
+    match /regNumbers/{regNo} {
+      allow create: if signedIn() && !exists(/databases/$(database)/documents/regNumbers/$(regNo))
+        && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.regNo == regNo;
+      allow get: if isOwner(resource.data.uid) || isPrincipal();
+      allow list, update, delete: if false;
+    }
+
+    // ---- Notices -------------------------------------------------------------
+    match /notices/{id} {
+      allow read: if isActive();
+      allow create: if isStaff() && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 150
+        && request.resource.data.body is string && request.resource.data.body.size() <= 5000
+        && request.resource.data.target in ['all', 'branch', 'semester'];
+      allow update, delete: if isStaff() && (isPrincipal() || resource.data.authorId == request.auth.uid);
+    }
+
+    // ---- Routines (doc id = branch_semester) ---------------------------------
+    match /routines/{id} {
+      allow read: if isActive();
+      allow write: if isStaff();
+    }
+
+    // ---- Routine images (doc id = branch_semester): staff upload a photo/scan of the routine ----
+    match /routineImages/{id} {
+      allow read: if isActive();
+      allow create, update: if isStaff() && request.resource.data.keys().hasOnly(['branch','semester','data','updatedBy','updatedByUid','updatedAt'])
+        && request.resource.data.data is string && request.resource.data.data.size() < 950000;
+      allow delete: if isStaff();
+    }
+
+    // ---- Campus resources: Principal creates/deletes, faculty update live status
+    match /resources/{id} {
+      allow read: if isActive();
+      allow create, delete: if isPrincipal();
+      allow update: if isPrincipal()
+        || (isActiveFaculty() && affects(['status','facultyName','purpose','releaseAt','updatedAt','updatedBy']));
+    }
+
+    // ---- Complaints (निवारण) --------------------------------------------------
+    match /complaints/{id} {
+      allow read: if isActive();
+      allow create: if isActive() && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.title is string && request.resource.data.title.size() <= 150
+        && request.resource.data.description is string && request.resource.data.description.size() <= 2000;
+      allow update: if isStaff() && affects(['status','assignedTo','assignedToName','assignedToDesignation','history','updatedAt']);
+      allow delete: if isPrincipal();
+    }
+    // Photos are stored separately so complaint lists stay light and photos stay private to owner + staff.
+    match /complaintPhotos/{id} {
+      allow create: if isActive() && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.data is string && request.resource.data.data.size() < 700000;
+      allow get: if isStaff() || isOwner(resource.data.ownerId);
+      allow list: if false;
+      allow delete: if isPrincipal();
+    }
+
+    // ---- Confidential complaints (गोपनीय शिकायत) ----------------------------------
+    // The complaint document holds NO reporter identity. Who wrote it lives in confidentialOwners/{id},
+    // which only that reporter can read, so the Principal sees the complaint but never the name.
+    // Students and faculty can file; only the Principal can handle it. Nobody else can read it.
+    match /confidential/{id} {
+      function ownsConf() { return signedIn() && exists(/databases/$(database)/documents/confidentialOwners/$(id))
+        && get(/databases/$(database)/documents/confidentialOwners/$(id)).data.ownerId == request.auth.uid; }
+      allow list: if isPrincipal();
+      allow get: if isPrincipal() || ownsConf();
+      allow create: if (isActiveStudent() || isActiveFaculty())
+        && request.resource.data.keys().hasOnly(['title','description','category','status','history','createdAt','updatedAt'])
+        && request.resource.data.status == 'pending'
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 150
+        && request.resource.data.description is string && request.resource.data.description.size() > 0 && request.resource.data.description.size() <= 3000
+        && getAfter(/databases/$(database)/documents/confidentialOwners/$(id)).data.ownerId == request.auth.uid;
+      // Principal changes status / replies. The reporter may only add a follow-up message (status stays the same).
+      allow update: if (isPrincipal() && affects(['status','history','updatedAt']))
+        || (ownsConf() && affects(['history','updatedAt']) && request.resource.data.status == resource.data.status
+            && request.resource.data.history.size() >= resource.data.history.size());
+      allow delete: if isPrincipal();
+    }
+    match /confidentialOwners/{id} {
+      allow create: if (isActiveStudent() || isActiveFaculty())
+        && request.resource.data.keys().hasOnly(['ownerId','createdAt']) && request.resource.data.ownerId == request.auth.uid;
+      allow get, list: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ---- QueueLess slots -----------------------------------------------------
+    match /slots/{id} {
+      allow read: if isStaff() || (isActiveStudent() && resource.data.studentId == request.auth.uid);
+      allow write: if isStaff();
+    }
+
+    // ---- Chat: channel "global", "<branch>_<semester>" or "<branch>_all" ----------------------
+    match /chats/{channel}/messages/{id} {
+      function canChat() { return isStaff() || (isActiveStudent() && (channel == 'global' || channel == me().branch + '_all' || channel == me().branch + '_' + string(me().semester))); }
+      allow read: if canChat();
+      allow create: if canChat() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000;
+      allow delete: if isStaff();
+      allow update: if false;
+    }
+
+    // ---- PaperPulse: previous-year papers -----------------------------------
+    match /papers/{id} {
+      allow read: if isActive();
+      allow write: if isStaff();
+    }
+  }
+}
