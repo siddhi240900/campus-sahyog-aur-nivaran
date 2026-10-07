@@ -7,7 +7,7 @@ import { reviewUser, setFacultyBranches } from '../../services/users';
 import { branches, branchLabel } from '../../config/branches';
 import { designations } from '../../config/designations';
 import { fmtDate } from '../../lib/format';
-import { Button, Modal, PageHeader, Empty, Loading, ErrorNote, Badge, Tabs, useToast } from '../../components/ui/UI';
+import { Button, Modal, PageHeader, Empty, Loading, ErrorNote, Tabs, useToast } from '../../components/ui/UI';
 
 const dName = id => designations.find(d => d.id === id)?.label || id;
 const STATUS = [['pending', 'Pending'], ['active', 'Approved'], ['rejected', 'Rejected'], ['revoked', 'Revoked']];

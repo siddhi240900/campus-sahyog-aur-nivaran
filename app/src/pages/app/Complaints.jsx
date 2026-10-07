@@ -13,7 +13,7 @@ import { fmtDateTime, timeAgo } from '../../lib/format';
 import { getProfile } from '../../services/users';
 import { designationText } from '../../config/designations';
 import Icon from '../../components/ui/Icon';
-import { Button, Input, Select, Textarea, Modal, PageHeader, Empty, Loading, ErrorNote, Badge, StatusBadge, StatusTrail, Tabs, useToast } from '../../components/ui/UI';
+import { Button, Input, Select, Textarea, Modal, PageHeader, Empty, Loading, ErrorNote, Badge, StatusTrail, Tabs, useToast } from '../../components/ui/UI';
 
 const blank = { title: '', description: '', category: 'other', resourceId: '', location: '' };
 

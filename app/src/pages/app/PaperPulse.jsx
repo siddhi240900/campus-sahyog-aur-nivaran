@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLive } from '../../hooks/useLive';
 import { papersQ, savePaper, deletePaper } from '../../services/data';
 import { analysePapers, splitQuestions } from '../../lib/paperpulse';
-import { branches, semesters, branchLabel } from '../../config/branches';
+import { branches, semesters } from '../../config/branches';
 import Icon from '../../components/ui/Icon';
 import { Button, Input, Select, Textarea, Modal, PageHeader, Empty, Loading, ErrorNote, Badge, Tabs, useToast } from '../../components/ui/UI';
 
