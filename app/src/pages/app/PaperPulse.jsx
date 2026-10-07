@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLive } from '../../hooks/useLive';
 import { papersQ, savePaper, deletePaper } from '../../services/data';
 import { analysePapers, splitQuestions } from '../../lib/paperpulse';
+import { extractPdfText, isPdfFile } from '../../lib/pdfText';
 import { branches, semesters } from '../../config/branches';
 import Icon from '../../components/ui/Icon';
 import { Button, Input, Select, Textarea, Modal, PageHeader, Empty, Loading, ErrorNote, Badge, Tabs, useToast } from '../../components/ui/UI';
@@ -14,7 +15,7 @@ function Upload({ onClose, defaults, papers }) {
   const [f, setF] = useState({ branch: defaults.branch, semester: defaults.semester, subject: '', year: thisYear - 1 });
   const [mode, setMode] = useState('quick');          // quick = type short topics, paste = paste the whole paper text
   const [items, setItems] = useState([]);             // the questions / topics that will be saved
-  const [topic, setTopic] = useState(''); const [text, setText] = useState(''); const [busy, setBusy] = useState(false);
+  const [topic, setTopic] = useState(''); const [text, setText] = useState(''); const [busy, setBusy] = useState(false); const [reading, setReading] = useState(false);
 
   // Earlier papers of the same branch + semester: reuse their subjects and topics instead of retyping.
   const same = papers.filter(x => x.branch === f.branch && x.semester === Number(f.semester));
@@ -28,8 +29,22 @@ function Upload({ onClose, defaults, papers }) {
 
   const add = list => setItems(cur => { const seen = new Set(cur.map(x => x.toLowerCase())); const next = [...cur]; list.forEach(x => { const t = x.trim(); if (t.length > 2 && !seen.has(t.toLowerCase())) { seen.add(t.toLowerCase()); next.push(t); } }); return next; });
   const addTopic = () => { if (topic.trim()) { add(topic.split(/[,;\n]+/)); setTopic(''); } };
-  const findQuestions = () => { const q = splitQuestions(text); if (!q.length) return toast('No questions found in that text.', 'err'); add(q); setText(''); toast(`${q.length} question${q.length === 1 ? '' : 's'} found. Remove any that are wrong.`); };
-  const loadFile = async e => { const file = e.target.files[0]; e.target.value = ''; if (!file) return; try { setText(await file.text()); } catch { toast('Could not read that file. Copy the text and paste it instead.', 'err'); } };
+  const addQuestionsFrom = (raw, source = 'text') => {
+    const found = splitQuestions(raw);
+    if (!found.length) return toast(`No questions found in that ${source}.`, 'err');
+    add(found); setText(''); toast(`${found.length} question${found.length === 1 ? '' : 's'} found. Remove any that are wrong.`);
+  };
+  const findQuestions = () => addQuestionsFrom(text);
+  // A PDF is read in the browser and its questions are added straight to the list; a .txt file is loaded into the box.
+  const loadFile = async e => {
+    const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+    setReading(true);
+    try {
+      if (isPdfFile(file)) addQuestionsFrom(await extractPdfText(file), 'PDF');
+      else setText(await file.text());
+    } catch (err) { toast(err.message || 'Could not read that file. Copy the text and paste it instead.', 'err'); }
+    finally { setReading(false); }
+  };
 
   const submit = async e => {
     e.preventDefault();
@@ -47,7 +62,7 @@ function Upload({ onClose, defaults, papers }) {
           <Input label="Exam year" type="number" min="2000" max={thisYear} required value={f.year} onChange={e => setF({ ...f, year: e.target.value })} /></div>
         <datalist id="pp-subjects">{subjects.map(s => <option key={s} value={s} />)}</datalist>
 
-        <Tabs value={mode} onChange={setMode} options={[{ id: 'quick', label: 'Quick topics' }, { id: 'paste', label: 'Paste paper text' }]} />
+        <Tabs value={mode} onChange={setMode} options={[{ id: 'quick', label: 'Quick topics' }, { id: 'paste', label: 'Upload PDF / paste text' }]} />
         {mode === 'quick' ? <>
           <div className="assign-row">
             <Input label="Topic asked in this paper" placeholder="e.g. Linked list types" value={topic} onChange={e => setTopic(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTopic(); } }} hint="Type a few words, press Enter. Add several at once with commas. No need to write the full question." />
@@ -55,9 +70,10 @@ function Upload({ onClose, defaults, papers }) {
           </div>
           {suggestions.length > 0 && <div><small className="muted">Asked in earlier years. Tap to add:</small><div className="chips">{suggestions.map(sg => <button type="button" key={sg} className="chip" onClick={() => add([sg])}>+ {sg}</button>)}</div></div>}
         </> : <>
-          <Textarea label="Paper text" rows={7} value={text} onChange={e => setText(e.target.value)} placeholder={'Copy the whole question paper from the PDF or Word file and paste it here.\nQ1. Explain the types of linked list.\nQ2. Define stack and write its applications.'} hint="Question numbers, marks and broken lines are cleaned up automatically." />
-          <div className="row-btns"><Button type="button" variant="outline" onClick={findQuestions} disabled={!text.trim()}>Find questions</Button>
-            <label className="btn outline">Load .txt file<input type="file" accept=".txt,.md,.csv,text/plain" onChange={loadFile} hidden /></label></div>
+          <label className={`btn primary ${reading ? 'is-busy' : ''}`}><Icon name="upload" size={16} />{reading ? 'Reading the file…' : 'Upload question paper PDF'}<input type="file" accept=".pdf,application/pdf,.txt,.md,.csv,text/plain" onChange={loadFile} disabled={reading} hidden /></label>
+          <small className="muted">The PDF is read on your device and its questions are listed below for you to check. Scanned photos cannot be read; use Quick topics for those.</small>
+          <Textarea label="Or paste the paper text" rows={7} value={text} onChange={e => setText(e.target.value)} placeholder={'Copy the whole question paper from the PDF or Word file and paste it here.\nQ1. Explain the types of linked list.\nQ2. Define stack and write its applications.'} hint="Question numbers, marks and broken lines are cleaned up automatically." />
+          <div className="row-btns"><Button type="button" variant="outline" onClick={findQuestions} disabled={!text.trim()}>Find questions</Button></div>
         </>}
 
         {items.length > 0 && <div><b className="h-sm">{items.length} added</b>
