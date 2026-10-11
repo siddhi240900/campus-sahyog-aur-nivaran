@@ -44,13 +44,13 @@ export function NotificationProvider({ children }) {
     if (!shown.length) return;
     const visible = document.visibilityState === 'visible';
     shown.slice(0, MAX_POPUPS).forEach(i => {
-      if (visible) toast(`${i.title}: ${i.body}`);
+      if (visible) toast(`${i.title}: ${i.body}`, 'notify');
       else if (allowed === 'granted') {
         const popup = new Notification(i.title, { body: i.body, tag: i.id, icon: '/assets/campus-mark.png' });
         popup.onclick = () => { window.focus(); go(i.path); popup.close(); };
       }
     });
-    if (shown.length > MAX_POPUPS && visible) toast(`${shown.length - MAX_POPUPS} more new notifications`);
+    if (shown.length > MAX_POPUPS && visible) toast(`${shown.length - MAX_POPUPS} more new notifications`, 'notify');
   }, [toast]);
 
   const branchesKey = (profile.branches || []).join(',');
