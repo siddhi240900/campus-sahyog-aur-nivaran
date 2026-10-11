@@ -10,7 +10,8 @@ React 19 + Vite + Firebase (Auth, Firestore). Three roles: **Student**, **Facult
 | Notices | Pinned notices targeted to everyone, a branch or a semester |
 | Routine | Upload the routine as an **image** per branch + semester (replace any time), or add day-wise periods |
 | Live resources | Free / occupied status of rooms, labs and halls, with release times |
-| College chat | Global, branch and semester channels |
+| College chat | Global, branch and semester channels. Send **emojis, photos and PDFs** (photos show a small preview, tap to open the full file; PDF up to 3 MB) |
+| Notifications | Bell with unread count, badges in the menu and a browser alert for new notices, chat messages, PaperPulse papers, complaint updates, QueueLess slots, routine changes and pending approvals (see below) |
 | निवारण (Complaints) | Report problems with a photo; Pending → Assigned → In progress → Resolved; repeated-issue detection |
 | गोपनीय शिकायत (Confidential) | Private complaints visible **only to the Principal** (and the reporter). The Principal sees who filed it (name, reg. no. / designation, branch) so the case can be resolved. Never shown in निवारण |
 | QueueLess | Office service time slots for students |
@@ -25,7 +26,7 @@ app/
 ├─ src/
 │  ├─ main.jsx              Routes and providers
 │  ├─ config/               Constants: branches, categories, statuses, designations, theme
-│  ├─ context/              AuthContext (session, profile, role)
+│  ├─ context/              AuthContext (session, profile, role), NotificationContext (unread state and alerts)
 │  ├─ routes/guards.jsx     Route guards (login, approval, role)
 │  ├─ services/             All Firestore / Auth calls (data.js, users.js, auth.js)
 │  ├─ hooks/                useLive (live queries), useReveal, useGreeting (time-of-day greeting)
@@ -34,6 +35,13 @@ app/
 │  └─ pages/                auth/, app/ (one file per feature), landing/
 ```
 Rule of thumb: pages never call Firebase directly for writes; they use `services/`. Shared UI lives in `components/ui`.
+
+## Notifications
+- **What:** new notices for you, chat messages in your channels, new PaperPulse papers, updates on your complaints (new complaints for staff), QueueLess slots assigned or changed, routine updates, replies on confidential complaints (details are never shown), and people waiting for approval (faculty / Principal).
+- **How it works:** `services/notifications.js` lists, per role, a few small Firestore queries (newest 10 each). `context/NotificationContext.jsx` watches them, keeps what you have already seen on this device (`localStorage`) and raises a popup, or a browser notification when the tab is in the background and you tapped "Turn on" in the bell panel. Opening a feature page marks it as read; in chat each channel is marked as you read it.
+- **Limit:** alerts work while CAMPUS is open in a browser tab (also in the background). Alerts when the browser is fully closed need Firebase Cloud Messaging plus Cloud Functions (paid Blaze plan), which this project does not use.
+- **Cost:** about 60 document reads per login for these feeds. Keep an eye on the Firestore free quota if many users log in daily.
+- To add a new kind of notification, add one feed in `feedsFor()` and one entry in `NOTIFICATION_GROUPS`.
 
 ## Branches
 All branches live in one list, `src/config/branches.js`. Every screen (register, approvals, notices, routine, chat, QueueLess, PaperPulse) reads from it, and `firestore.rules` does not restrict branch ids. To add a branch, add one line `[id, 'Full name', 'Short name']` at the end of the list; keep existing ids unchanged because they are stored in user and paper records.
@@ -60,7 +68,7 @@ Copy `.env.example` to `.env` and fill in the Firebase keys. `VITE_PRINCIPAL_UID
 ## Security notes
 - All authorization is enforced in `firestore.rules`, not in the UI. The Principal is identified by UID only.
 - Confidential complaints: only the Principal and the reporter can read them; the stored reporter name/role is validated against the reporter's real profile, so nobody can file under another person's name.
-- PaperPulse files are stored in pieces under `papers/{id}/files`; only faculty can write them, active users can read them. PDF is limited to 5 MB and 5 files per paper.
+- Chat photos / PDFs are stored in pieces under `chats/{channel}/files` (same channel rules as messages; only staff can delete). PaperPulse files are stored in pieces under `papers/{id}/files`; only faculty can write them, active users can read them. PDF is limited to 5 MB and 5 files per paper.
 - Complaint, routine and photo sizes are limited in the rules. Images are compressed in the browser and stored in Firestore (no paid Storage).
 - Never commit `.env`. No AI key belongs in the browser; use your own endpoint via `VITE_AI_ENDPOINT` (`src/lib/ai.js`).
 
