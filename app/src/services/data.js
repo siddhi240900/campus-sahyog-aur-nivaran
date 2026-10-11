@@ -46,8 +46,34 @@ export const setSlotStatus = (id, status) => updateDoc(doc(db, 'slots', id), { s
 export const deleteSlot = id => deleteDoc(doc(db, 'slots', id));
 
 // ---- chat ----
-export const sendMessage = (channel, text, p, uid) => addDoc(collection(db, 'chats', channel, 'messages'), { text: text.trim(), uid, name: p.name, role: p.role, createdAt: serverTimestamp() });
-export const deleteMessage = (channel, id) => deleteDoc(doc(db, 'chats', channel, 'messages', id));
+// A message may carry one photo or PDF. Like PaperPulse files, it is cut into pieces (a Firestore document is limited
+// to 1 MB) stored in chats/{channel}/files/{fileId}_{part}. The message itself is written LAST, so nobody sees a
+// message whose file is still being saved. Photos also carry a tiny `thumb` shown inside the bubble.
+const CHAT_FILE_CHUNK = 800000;
+export const sendMessage = async (channel, text, p, uid, file = null) => {
+  const messages = collection(db, 'chats', channel, 'messages');
+  const base = { text: text.trim(), uid, name: p.name, role: p.role, createdAt: serverTimestamp() };
+  if (!file) return addDoc(messages, base);
+  const fileId = doc(messages).id; const parts = Math.ceil(file.data.length / CHAT_FILE_CHUNK); const written = [];
+  try {
+    for (let i = 0; i < parts; i++) {
+      const piece = doc(db, 'chats', channel, 'files', `${fileId}_${i}`);
+      await setDoc(piece, { data: file.data.slice(i * CHAT_FILE_CHUNK, (i + 1) * CHAT_FILE_CHUNK) }); written.push(piece);
+    }
+    const attachment = { kind: file.kind, name: file.name, size: file.size, fileId, parts, ...(file.thumb ? { thumb: file.thumb } : {}) };
+    return await addDoc(messages, { ...base, attachment });
+  } catch (err) { await Promise.allSettled(written.map(d => deleteDoc(d))); throw err; }
+};
+// Returns the shared file as a data: URL, joined back from its pieces.
+export const loadChatFile = async (channel, attachment) => {
+  const pieces = await Promise.all(Array.from({ length: attachment.parts }, (_, i) => getDoc(doc(db, 'chats', channel, 'files', `${attachment.fileId}_${i}`))));
+  if (pieces.some(d => !d.exists())) throw new Error('This file is no longer available.');
+  return pieces.map(d => d.data().data).join('');
+};
+export const deleteMessage = async (channel, id, attachment = null) => {
+  await deleteDoc(doc(db, 'chats', channel, 'messages', id));
+  if (attachment) await Promise.allSettled(Array.from({ length: attachment.parts }, (_, i) => deleteDoc(doc(db, 'chats', channel, 'files', `${attachment.fileId}_${i}`))));
+};
 
 // ---- PaperPulse ----
 // A paper can carry attached files (PDF / photos). Firestore documents are limited to 1 MB, so each file is cut into

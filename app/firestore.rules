@@ -17,6 +17,8 @@ service cloud.firestore {
     // Faculty with no branches assigned may review students of every branch.
     function coversBranch(b) { return me().branches.size() == 0 || b in me().branches; }
     function isActive() { return isStaff() || isActiveStudent(); }
+    // Chat channel: "global", "<branch>_<semester>" or "<branch>_all". Staff may use any; students only their own.
+    function canChatIn(channel) { return isStaff() || (isActiveStudent() && (channel == 'global' || channel == me().branch + '_all' || channel == me().branch + '_' + string(me().semester))); }
 
     function affects(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
 
@@ -161,12 +163,30 @@ service cloud.firestore {
 
     // ---- Chat: channel "global", "<branch>_<semester>" or "<branch>_all" ----------------------
     match /chats/{channel}/messages/{id} {
-      function canChat() { return isStaff() || (isActiveStudent() && (channel == 'global' || channel == me().branch + '_all' || channel == me().branch + '_' + string(me().semester))); }
-      allow read: if canChat();
-      allow create: if canChat() && request.resource.data.uid == request.auth.uid
-        && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000;
+      // One shared photo / PDF per message: kind, name, size, the id and number of stored pieces, and (photos) a tiny preview.
+      function validAttachment(a) {
+        return a is map && a.keys().hasOnly(['kind','name','size','fileId','parts','thumb'])
+          && a.kind in ['image', 'pdf'] && a.name is string && a.name.size() <= 120
+          && a.size is number && a.fileId is string && a.parts is number && a.parts >= 1 && a.parts <= 6
+          && (!('thumb' in a) || (a.thumb is string && a.thumb.size() < 60000));
+      }
+      allow read: if canChatIn(channel);
+      allow create: if canChatIn(channel) && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['text','uid','name','role','createdAt','attachment'])
+        && request.resource.data.text is string && request.resource.data.text.size() <= 1000
+        && (!('attachment' in request.resource.data) || validAttachment(request.resource.data.attachment))
+        && (request.resource.data.text.size() > 0 || 'attachment' in request.resource.data);
       allow delete: if isStaff();
       allow update: if false;
+    }
+
+    // ---- Chat files: the stored pieces of shared photos / PDFs ------------------------------------------------
+    match /chats/{channel}/files/{part} {
+      allow read: if canChatIn(channel);
+      allow create: if canChatIn(channel) && request.resource.data.keys().hasOnly(['data'])
+        && request.resource.data.data is string && request.resource.data.data.size() <= 850000;
+      allow update: if false;
+      allow delete: if isStaff();
     }
 
     // ---- PaperPulse: previous-year papers -----------------------------------

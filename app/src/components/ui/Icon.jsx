@@ -33,6 +33,8 @@ const P = {
   upload: 'M12 16V4M7 9l5-5 5 5M4 20h16',
   download: 'M12 4v12M7 11l5 5 5-5M4 20h16',
   arrow: 'M5 12h14M13 6l6 6-6 6',
+  smile: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM8 14s1.5 2 4 2 4-2 4-2M9 9.5h.01M15 9.5h.01',
+  paperclip: 'M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9',
 };
 export default function Icon({ name, size = 20, ...rest }) {
   return (

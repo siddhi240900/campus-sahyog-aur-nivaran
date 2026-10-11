@@ -327,3 +327,12 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 @media (min-width: 901px) { .bell-top { display: none; } }
 @media (max-width: 900px) { .bell-side { display: none; } .notif-panel { left: 8px; right: 8px; top: 58px; width: auto; } }
 
+/* College chat: emoji, photos and PDFs */
+.chat-input .icon-btn { flex: none; align-self: center; } .chat-input input[type=text], .chat-input input:not([type]) { flex: 1; min-width: 0; }
+.chat-pending { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-top: 1px solid var(--line); background: var(--green-soft); font-size: .85rem; } .chat-pending span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.emoji-picker { border-top: 1px solid var(--line); background: #fff; } .emoji-tabs { display: flex; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--line); }
+.emoji-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 6px 10px; font-size: 1.15rem; cursor: pointer; } .emoji-tabs button.on { border-bottom-color: var(--green); }
+.emoji-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 2px; padding: 8px 10px; max-height: 170px; overflow-y: auto; }
+.emoji-grid button { background: none; border: 0; border-radius: 8px; font-size: 1.4rem; line-height: 1; padding: 6px; cursor: pointer; } .emoji-grid button:hover { background: var(--green-soft); }
+.chat-photo { display: block; padding: 0; border: 0; background: none; cursor: pointer; margin: 2px 0 4px; } .chat-photo img { display: block; max-width: 220px; width: 100%; border-radius: 10px; }
+.chat-file { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: rgba(11,74,46,.07); color: inherit; border: 0; border-radius: 10px; padding: 8px 10px; margin: 2px 0 4px; cursor: pointer; font: inherit; } .chat-file span { display: flex; flex-direction: column; min-width: 0; } .chat-file b { font-size: .86rem; overflow-wrap: anywhere; } .msg.mine .chat-file { background: rgba(255,255,255,.16); }
