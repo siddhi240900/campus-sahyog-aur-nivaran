@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLive } from '../../hooks/useLive';
 import { papersQ, savePaper, deletePaper, loadPaperFile } from '../../services/data';
 import { analysePapers, splitQuestions } from '../../lib/paperpulse';
-import { readPaperFile, dataUrlToBlob, renderPdfPages, MAX_FILES, MAX_TOTAL_CHARS } from '../../lib/paperFile';
+import { readPaperFile, dataUrlToBlob, MAX_FILES, MAX_TOTAL_CHARS } from '../../lib/paperFile';
 import { branches, semesters } from '../../config/branches';
 import { displayName } from '../../lib/people';
 import Icon from '../../components/ui/Icon';
+import FileView from '../../components/FileView';
 import { Button, Input, Select, Textarea, Modal, PageHeader, Empty, Loading, ErrorNote, Badge, Tabs, useToast } from '../../components/ui/UI';
 
 const thisYear = new Date().getFullYear();
@@ -93,21 +94,6 @@ function Upload({ onClose, defaults, papers }) {
 }
 
 // Shows a paper to everyone: the attached PDF / photos exactly as uploaded, plus any topics the teacher typed.
-function FileView({ blob, type, name }) {
-  const box = useRef(); const [err, setErr] = useState(''); const [busy, setBusy] = useState(type === 'application/pdf');
-  const url = useMemo(() => URL.createObjectURL(blob), [blob]);
-  useEffect(() => () => URL.revokeObjectURL(url), [url]);
-  useEffect(() => {
-    if (type !== 'application/pdf') return; let stop = false; const el = box.current;
-    renderPdfPages(blob, el, () => stop).catch(() => !stop && setErr('Could not show this PDF here. Use Download to open it.')).finally(() => !stop && setBusy(false));
-    return () => { stop = true; el.replaceChildren(); };
-  }, [blob, type]);
-  return (<div className="pp-file">
-    <div className="pp-file-head"><b>{name}</b><a className="btn outline sm" href={url} download={name}><Icon name="download" size={15} />Download</a></div>
-    {type === 'application/pdf' ? <>{busy && <Loading />}{err && <p className="error">{err}</p>}<div ref={box} className="pp-pages" /></> : <div className="pp-pages"><img src={url} alt={name} /></div>}
-  </div>);
-}
-
 function Viewer({ paper, onClose }) {
   const [blobs, setBlobs] = useState(null); const [err, setErr] = useState('');
   const files = paper.files || [];
