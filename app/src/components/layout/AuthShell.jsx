@@ -5,7 +5,7 @@ export function AuthShell({ title, subtitle, children, wide }) {
       <aside className="auth-side">
         <Link to="/" className="auth-badge"><img src="/assets/campus-logo.png" alt="CAMPUS सहयोग और निवारण" /></Link>
         <p className="auth-tag">One digital platform for a connected and smarter college.</p>
-        <div className="auth-college"><img src="/assets/college-logo.jpeg" alt="" /><span>Government Women’s Polytechnic, Patna</span></div>
+        <div className="auth-college"><img src="/assets/college-logo.png" alt="" /><span>Government Polytechnic Gulzarbagh</span></div>
       </aside>
       <section className="auth-main">
         <div className={`auth-card ${wide ? 'wide' : ''}`}>

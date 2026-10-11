@@ -1,6 +1,6 @@
 # CAMPUS सहयोग और निवारण
 
-One digital platform for a connected and smarter college (Government Women's Polytechnic, Patna).
+One digital platform for a connected and smarter college (Government Polytechnic Gulzarbagh).
 React 19 + Vite + Firebase (Auth, Firestore). Three roles: **Student**, **Faculty / Admin**, **Principal**.
 
 ## Features

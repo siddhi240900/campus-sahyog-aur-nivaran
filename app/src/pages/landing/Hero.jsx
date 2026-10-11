@@ -7,7 +7,7 @@ export default function Hero() {
     <section className="l-hero">
       <div className="l-hero-copy">
         <h1>One Digital Platform for a Connected and Smarter College</h1>
-        <p className="lead">Notices, routines, free rooms, complaints and scholarship slots for Government Women’s Polytechnic, Patna, all in one place instead of scattered chats and paper.</p>
+        <p className="lead">Notices, routines, free rooms, complaints and scholarship slots for Government Polytechnic Gulzarbagh, all in one place instead of scattered chats and paper.</p>
         <p className="hi lead-hi">सूचना, सुविधा और शिकायत: सब एक ही जगह।</p>
         <div className="l-cta">
           <Link to="/register" className="btn gold lg">Register</Link>

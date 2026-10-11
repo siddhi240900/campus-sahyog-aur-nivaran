@@ -8,7 +8,7 @@ export default function Navbar() {
     <header className="l-nav">
       <div className="l-nav-in">
         <Link to="/" className="l-logos" aria-label="CAMPUS सहयोग और निवारण">
-          <img className="l-college" src="/assets/college-logo.jpeg" alt="Government Women's Polytechnic, Patna" />
+          <img className="l-college" src="/assets/college-logo.png" alt="Government Polytechnic Gulzarbagh" />
           <span className="l-sep" />
           <img className="l-app" src="/assets/campus-logo.png" alt="CAMPUS सहयोग और निवारण" />
         </Link>
