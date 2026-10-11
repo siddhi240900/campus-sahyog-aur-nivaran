@@ -6,6 +6,9 @@ import { signOut } from '../../services/auth';
 import { branchLabel } from '../../config/branches';
 import { displayName } from '../../lib/people';
 import RulesNotice, { rulesPending, clearRulesPending } from './RulesNotice';
+import NotificationBell, { countLabel } from './NotificationBell';
+import { NotificationProvider, useNotifications } from '../../context/NotificationContext';
+import { NOTIFICATION_GROUPS } from '../../lib/notifications';
 
 const NAV = [
   { to: '/app', end: true, label: 'Dashboard', icon: 'home' },
@@ -20,8 +23,16 @@ const NAV = [
 ];
 const roleName = { student: 'Student', faculty: 'Faculty / Admin', principal: 'Principal' };
 
+const groupOfPath = Object.fromEntries(Object.entries(NOTIFICATION_GROUPS).map(([group, g]) => [g.path, group]));
+
+// Notifications are provided around the whole signed-in layout so every page and the menu can use them.
 export function AppShell() {
+  return <NotificationProvider><Layout /></NotificationProvider>;
+}
+
+function Layout() {
   const { profile } = useAuth();
+  const { unread } = useNotifications();
   const [open, setOpen] = useState(false);
   const loc = useLocation();
   const [rules, setRules] = useState(() => profile.role === 'student' && rulesPending());   // strict-rule notice after each student login
@@ -35,16 +46,18 @@ export function AppShell() {
       <header className="topbar">
         <button className="icon-btn" onClick={() => setOpen(true)} aria-label="Open menu"><Icon name="menu" /></button>
         <img src="/assets/campus-mark.png" alt="" /><b>CAMPUS</b>
+        <NotificationBell className="bell-top" />
       </header>
       {open && <div className="scrim" onClick={() => setOpen(false)} />}
       <aside className={`side ${open ? 'open' : ''}`}>
         <div className="side-top">
           <img className="side-logo" src="/assets/campus-mark.png" alt="" />
           <div><b>CAMPUS</b><span className="hi">सहयोग और निवारण</span></div>
+          <NotificationBell className="bell-side" />
           <button className="icon-btn close" onClick={() => setOpen(false)} aria-label="Close menu"><Icon name="close" /></button>
         </div>
         <nav aria-label="Main">
-          {items.map(i => <NavLink key={i.to} to={i.to} end={i.end} className="nav-link"><Icon name={i.icon} size={19} /><span className={/[\u0900-\u097F]/.test(i.label) ? 'hi' : ''}>{i.label}</span></NavLink>)}
+          {items.map(i => <NavLink key={i.to} to={i.to} end={i.end} className="nav-link"><Icon name={i.icon} size={19} /><span className={/[\u0900-\u097F]/.test(i.label) ? 'hi' : ''}>{i.label}</span>{unread[groupOfPath[i.to]] > 0 && <span className="nav-badge" aria-label={`${unread[groupOfPath[i.to]]} new`}>{countLabel(unread[groupOfPath[i.to]])}</span>}</NavLink>)}
         </nav>
         <div className="side-user">
           <div className="avatar">{profile.name?.[0]?.toUpperCase()}</div>

@@ -42,7 +42,7 @@ export async function createSlots(slots, by) {
   slots.forEach(s => batch.set(doc(collection(db, 'slots')), { ...s, status: 'scheduled', createdBy: by.uid, createdByName: by.name, createdAt: serverTimestamp() }));
   await batch.commit();
 }
-export const setSlotStatus = (id, status) => updateDoc(doc(db, 'slots', id), { status });
+export const setSlotStatus = (id, status) => updateDoc(doc(db, 'slots', id), { status, updatedAt: serverTimestamp() });   // updatedAt lets the student be notified of the change
 export const deleteSlot = id => deleteDoc(doc(db, 'slots', id));
 
 // ---- chat ----
