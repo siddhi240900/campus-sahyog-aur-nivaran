@@ -1,3 +1,17 @@
 node_modules
 dist
 .env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# Android
+android/.idea
+android/.gradle
+android/build
+android/app/build
+android/local.properties
+android/captures
+*.jks
+*.keystore
