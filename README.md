@@ -1,6 +1,6 @@
 # CAMPUS सहयोग और निवारण
 
-One digital platform for a connected and smarter college (Government Polytechnic Gulzarbagh).
+One digital platform for a connected and smarter college (New Government Polytechnic, Patna - 13).
 **React 19 + Vite + Firebase (Auth, Firestore)**, also available as an **Android app** (Capacitor). Three roles: **Student**, **Faculty / Admin**, **Principal**.
 
 ## Features
